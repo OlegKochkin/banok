@@ -1,0 +1,5 @@
+#!/bin/bash
+
+ipset del ban-ip $1
+ipset save -file /etc/sysconfig/ipset
+echo "$(date +"%d.%m.%Y %H:%M:%S") DEL: $1 удалён из таблицы ipset" >> /var/log/ban/ban.log

@@ -1,0 +1,58 @@
+#! /bin/bash
+
+ToLog(){
+  if [[ -t 1 ]];then
+    echo "$(date +"%d.%m.%Y %H:%M:%S") $1"
+  else
+    mkdir -p /var/log/ban
+    echo "$(date +"%d.%m.%Y %H:%M:%S") $1" >> /var/log/ban/ban.log
+  fi
+  }
+
+IP=$1
+COMMENT="$2"
+BANTIME=$((24*24*60*60))
+
+if [[ $(ipset list ban-ip | grep '\.' | grep -w $IP) ]];then
+  ToLog "ERROR: $IP (\"$COMMENT\") уже в таблице ipset"
+  echo 0
+  exit
+  fi
+
+# Проверка синтаксиса IP
+ipcalc -c $IP &>/dev/null
+if [[ $? != 0 ]];then
+  ToLog "ERROR: $IP (\"$COMMENT\") - Неправильный адрес"
+  echo 0
+  exit
+  fi
+
+# Проверка принадлежности подсетям белого списка
+while read LINE;do
+  NET=$(echo $LINE | awk -F ';' '{print $1}')
+  grepcidr $NET <(echo $IP) &>/dev/null
+  if [[ $? = 0 ]];then
+    DESCR=$(echo $LINE | awk -F ';' '{print $2}')
+    ToLog "ERROR: $IP (\"$COMMENT\") принадлежит сети из белого списка $NET (\"$DESCR\")"
+    echo 0
+    exit
+    fi
+  done <<<$(cat /usr/local/etc/ban-white-ip.dat)
+
+# Проверка принадлежности доменам белого списка
+while read LINE;do
+  DOM=$LINE
+  IPDOM=$(host -t A $DOM | grep "has address" | cut -f 4 -d" ")
+  if [[ $IPDOM = $IP ]];then
+    ToLog "ERROR: $IP (\"$COMMENT\") соответствует домену из белого списка \"$DOM\""
+    echo 0
+    exit
+    fi
+  done <<<$(cat /usr/local/etc/ban-white-domain.dat)
+
+ipset -q add ban-ip $IP timeout $BANTIME
+ipset save -file /etc/sysconfig/ipset
+
+GEO=$(geoiplookup $IP | awk -F ': ' '{print $2}')
+ToLog "ADD: $IP. Причина: \"$COMMENT\". Местоположение: \"$GEO\""
+echo 1

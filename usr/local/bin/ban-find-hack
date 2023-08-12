@@ -1,0 +1,18 @@
+#! /bin/bash
+
+# Получает из входного потока список IP, разделённых переводом строки, ак комментарий и список категорий для abuseipdb, как перый и второй параметры
+Add() {
+  COM="$1"
+  CAT="$2"
+  while read IP;do
+    Ret=$(ban-add-ip $IP "$COM")
+    if [[ $Ret == 1 ]];then
+	  curl -s https://api.abuseipdb.com/api/v2/report --data-urlencode "ip=$IP" -d categories=$CAT --data-urlencode "comment=$COM" -H "Key: $(cat /usr/local/etc/abuseipdb.key)" -H "Accept: application/json" &>/dev/null
+    fi
+  done
+  }
+
+# В /etc/banok.d/ находятся sh скрипты, обрабатывающие конкретные журналы для нахождения аттак. Каждый скрипт передаёт список IP и параметры для функции ADD
+for i in /usr/local/etc/banok.d/*.sh; do
+  . $i
+done
