@@ -14,7 +14,7 @@ COMMENT="$2"
 BANTIME=$((24*24*60*60))
 
 if [[ $(ipset list ban-ip | grep '\.' | grep -w $IP) ]];then
-  ToLog "ERROR: $IP (\"$COMMENT\") уже в таблице ipset"
+  ToLog "EXS: $IP (\"$COMMENT\") уже в таблице ipset"
   echo 0
   exit
   fi
@@ -22,7 +22,7 @@ if [[ $(ipset list ban-ip | grep '\.' | grep -w $IP) ]];then
 # Проверка синтаксиса IP
 ipcalc -c $IP &>/dev/null
 if [[ $? != 0 ]];then
-  ToLog "ERROR: $IP (\"$COMMENT\") - Неправильный адрес"
+  ToLog "ERR: $IP (\"$COMMENT\") - Неправильный адрес"
   echo 0
   exit
   fi
@@ -33,7 +33,7 @@ while read LINE;do
   grepcidr $NET <(echo $IP) &>/dev/null
   if [[ $? = 0 ]];then
     DESCR=$(echo $LINE | awk -F ';' '{print $2}')
-    ToLog "ERROR: $IP (\"$COMMENT\") принадлежит сети из белого списка $NET (\"$DESCR\")"
+    ToLog "WHT: $IP (\"$COMMENT\") принадлежит сети из белого списка $NET (\"$DESCR\")"
     echo 0
     exit
     fi
@@ -44,7 +44,7 @@ while read LINE;do
   DOM=$LINE
   IPDOM=$(host -t A $DOM | grep "has address" | cut -f 4 -d" ")
   if [[ $IPDOM = $IP ]];then
-    ToLog "ERROR: $IP (\"$COMMENT\") соответствует домену из белого списка \"$DOM\""
+    ToLog "WHT: $IP (\"$COMMENT\") соответствует домену из белого списка \"$DOM\""
     echo 0
     exit
     fi
@@ -54,5 +54,5 @@ ipset -q add ban-ip $IP timeout $BANTIME
 ipset save -file /etc/sysconfig/ipset
 
 GEO=$(geoiplookup $IP | awk -F ': ' '{print $2}')
-ToLog "ADD: $IP. Причина: \"$COMMENT\". Местоположение: \"$GEO\""
+ToLog "ADD: $IP. $COMMENT. $GEO"
 echo 1
