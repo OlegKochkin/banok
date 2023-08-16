@@ -1,6 +1,6 @@
 MIN=$(date +%M -d "-10 minutes")
 DateFilter="$(LC_ALL=en_US date +%d/%b/%Y:%H: -d "-10 minutes")""${MIN:0:1}"
-grep $DateFilter /var/log/httpd/*access_log | grep \
+grep $DateFilter /var/log/httpd/*access_log | grep " 404 " | grep \
 -e "/1.php" \
 -e "java.lang.Runtime" \
 -e "/8tGi" \
@@ -14,7 +14,6 @@ grep $DateFilter /var/log/httpd/*access_log | grep \
 -e "/api/sonicos/tfa" \
 -e "/app" \
 -e "/app?service=page" \
--e "/assets/img/touch-icon" \
 -e "/auth1.html" \
 -e "/auth.html" \
 -e "/autodiscover/autodiscover.json" \
@@ -78,10 +77,6 @@ grep $DateFilter /var/log/httpd/*access_log | grep \
 -e "/hudson" \
 -e "/index_sso.php" \
 -e "/is-bin" \
--e "/jquery.js" \
--e "/load" \
--e "/login" \
--e "/main" \
 -e "/manager/html" \
 -e "/mgmt/tm/util/bash" \
 -e "/nation.php" \
