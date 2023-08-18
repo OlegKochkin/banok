@@ -1,0 +1,28 @@
+#! /bin/bash
+
+# Создать таблицу в ipset
+# ipset create abuseipdb hash:ip timeout 864000
+
+ToLog(){
+  local NOW=$(date +"%d.%m.%Y %H:%M:%S")
+  [ -t 1 ] && echo "$NOW $1" | tee -a $LogFile || echo "$NOW $1" >> $LogFile
+  }
+
+LogFile=/var/log/abuseipdb.log
+AbuseFile=/usr/local/etc/abuseipdb.txt
+ToLog "------------------- Start script: $0"
+LifeFile=$(($(date +%s)-$(stat -c %Y $AbuseFile)))
+if [[ $LifeFile -gt 85000 ]];then
+  ToLog "Start load $AbuseFile"
+  curl -s -G https://api.abuseipdb.com/api/v2/blacklist -d confidenceMinimum=75 -d limit=9999999 -d ipVersion=4 -H "Key: $(cat /usr/local/etc/abuseipdb.key)" -H "Accept: text/plain" > $AbuseFile
+  ToLog "End load $AbuseFile"
+
+  ToLog "Start fill ipset"
+  ipset flush abuseipdb
+  cat $AbuseFile | while read IP;do ipset -q add abuseipdb $IP;done
+  ipset save -file /etc/sysconfig/ipset
+  ToLog "End fill ipset"
+else
+  ToLog "Not need load $AbuseFile"
+fi
+ToLog "End script: $0"
